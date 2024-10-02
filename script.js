@@ -2,6 +2,7 @@
 const gameArea = document.getElementById("gameArea");
 const goku = document.getElementById("goku");
 const scoreDisplay = document.getElementById("score");
+const startScreenText = document.getElementById("start-screen-text")
 
 // Game Variables
 let gokuTop = gameArea.offsetHeight / 3; // Goku starts 1/3rd from the top
@@ -20,7 +21,7 @@ let speedIncreaseInterval = 5; // Increase speed every 5 points
 goku.style.top = gokuTop + "px";
 
 // Event Listeners
-document.addEventListener("keydown", fly);
+document.addEventListener("keydown", startScreen);
 
 // Function to make Goku fly
 function fly() {
@@ -125,5 +126,13 @@ function endGame() {
   location.reload(); // Reload the game on game over
 }
 
-// Start the game
-startGame();
+// Start the game only when the space key is pressed
+function startScreen(e) {
+  if (e.code === "Space") {
+    startScreenText.style.display = "none";
+    goku.style.display = "block";
+    document.removeEventListener("keydown", startScreen);
+    document.addEventListener("keydown", fly); // Add fly event listener
+    startGame(); // Start the game on space key press
+  }
+}
