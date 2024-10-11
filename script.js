@@ -2,7 +2,7 @@
 const gameArea = document.getElementById("gameArea");
 const goku = document.getElementById("goku");
 const scoreDisplay = document.getElementById("score");
-const startScreenText = document.getElementById("start-screen-text")
+const startScreenText = document.getElementById("start-screen-text");
 
 // Game Variables
 let gokuTop = gameArea.offsetHeight / 3; // Goku starts 1/3rd from the top
@@ -22,10 +22,11 @@ goku.style.top = gokuTop + "px";
 
 // Event Listeners
 document.addEventListener("keydown", startScreen);
+document.addEventListener("touchstart", startScreen); // Add touch event listener
 
 // Function to make Goku fly
 function fly() {
-  velocity = lift; // Move Goku up when space is pressed
+  velocity = lift; // Move Goku up when space is pressed or screen is touched
 }
 
 // Create Pipes
@@ -126,13 +127,15 @@ function endGame() {
   location.reload(); // Reload the game on game over
 }
 
-// Start the game only when the space key is pressed
+// Start the game only when the space key is pressed or screen is touched
 function startScreen(e) {
-  if (e.code === "Space") {
+  if (e.code === "Space" || e.type === "touchstart") {
     startScreenText.style.display = "none";
     goku.style.display = "block";
     document.removeEventListener("keydown", startScreen);
+    document.removeEventListener("touchstart", startScreen); // Remove touch event listener
     document.addEventListener("keydown", fly); // Add fly event listener
-    startGame(); // Start the game on space key press
+    document.addEventListener("touchstart", fly); // Add touch event listener for flying
+    startGame(); // Start the game on space key press or screen touch
   }
 }
