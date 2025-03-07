@@ -2,12 +2,16 @@
 const gameArea = document.getElementById("gameArea");
 const goku = document.getElementById("goku");
 const scoreDisplay = document.getElementById("score");
-const startScreenText = document.getElementById("start-screen-text");
 
-// Game Variables
+// Create start message element
+const startMessage = document.createElement("div");
+startMessage.classList.add("start-message");
+startMessage.innerHTML = "Press space bar or tap to start the game";
+gameArea.appendChild(startMessage);
+
 let gokuTop = gameArea.offsetHeight / 3; // Goku starts 1/3rd from the top
-let gravity = 0.5; // Gravity, so Goku falls slowly
-let lift = -8; // How much Goku moves up when space is pressed
+let gravity = 0.25; // Reduced gravity so Goku falls more slowly
+let lift = -7; // Slightly reduced lift for better control
 let velocity = 0;
 let gameSpeed = 3; // Initial Pipe speed (this will increase)
 let pipeGap = 200; // Gap between top and bottom pipes
@@ -16,20 +20,24 @@ let pipeInterval;
 let score = 0;
 let isGameOver = false;
 let speedIncreaseInterval = 5; // Increase speed every 5 points
+let isGameStarted = false; // Flag to check if the game has started
 
-// Start Goku at a safe height
 goku.style.top = gokuTop + "px";
 
-// Event Listeners
-document.addEventListener("keydown", startScreen);
-document.addEventListener("touchstart", startScreen); // Add touch event listener
+document.addEventListener("keydown", fly);
+document.addEventListener("touchstart", fly);
 
-// Function to make Goku fly
 function fly() {
-  velocity = lift; // Move Goku up when space is pressed or screen is touched
+  if (!isGameStarted) {
+    isGameStarted = true;
+    startGame();
+    
+    // Hide start message when game starts
+    startMessage.style.display = "none";
+  }
+  velocity = lift; // Move Goku up when space is pressed
 }
 
-// Create Pipes
 function createPipes() {
   const pipeTop = document.createElement("div");
   const pipeBottom = document.createElement("div");
@@ -54,63 +62,73 @@ function createPipes() {
   pipes.push({ top: pipeTop, bottom: pipeBottom });
 }
 
-// Game Loop
 function gameLoop() {
-  // Gravity and movement for Goku
-  velocity += gravity;
-  gokuTop += velocity;
-  goku.style.top = gokuTop + "px";
+  if (isGameStarted) {
+    // Gravity and movement for Goku
+    velocity += gravity;
+    gokuTop += velocity;
+    goku.style.top = gokuTop + "px";
 
-  // Prevent Goku from going out of bounds
-  if (gokuTop < 0 || gokuTop + goku.offsetHeight >= gameArea.offsetHeight) {
-    endGame();
-  }
+    // Get Goku's actual dimensions for more accurate collision detection
+    const gokuRect = goku.getBoundingClientRect();
+    const gameAreaRect = gameArea.getBoundingClientRect();
 
-  // Move pipes and check for collisions
-  pipes.forEach((pipe, index) => {
-    let pipeLeft = parseInt(pipe.top.style.left) - gameSpeed;
+    // Prevent Goku from going out of bounds
+    if (gokuTop < 0) {
+      // Only handle ceiling collision here
+      endGame();
+    }
+    
+    // Handle floor collision more accurately
+    if (gokuRect.bottom >= gameAreaRect.bottom) {
+      endGame();
+    }
 
-    // Remove pipes that move off the screen
-    if (pipeLeft < -60) {
-      pipe.top.remove();
-      pipe.bottom.remove();
-      pipes.splice(index, 1);
-      score++; // Increment score when pipes pass by
-      scoreDisplay.innerText = `${score}`;
+    // Move pipes and check for collisions
+    pipes.forEach((pipe, index) => {
+      let pipeLeft = parseInt(pipe.top.style.left) - gameSpeed;
 
-      // Increase game speed as score increases
-      if (score % speedIncreaseInterval === 0) {
-        gameSpeed += 0.5; // Increment speed by 0.5 for every multiple of the interval
-      }
-    } else {
-      pipe.top.style.left = pipeLeft + "px";
-      pipe.bottom.style.left = pipeLeft + "px";
+      // Remove pipes that move off the screen
+      if (pipeLeft < -60) {
+        pipe.top.remove();
+        pipe.bottom.remove();
+        pipes.splice(index, 1);
+        score++; // Increment score when pipes pass by
+        scoreDisplay.innerText = `${score}`;
 
-      // Collision detection
-      let gokuRect = goku.getBoundingClientRect();
-      let pipeTopRect = pipe.top.getBoundingClientRect();
-      let pipeBottomRect = pipe.bottom.getBoundingClientRect();
+        // Increase game speed as score increases
+        if (score % speedIncreaseInterval === 0) {
+          gameSpeed += 0.5; // Increment speed by 0.5 for every multiple of the interval
+        }
+      } else {
+        pipe.top.style.left = pipeLeft + "px";
+        pipe.bottom.style.left = pipeLeft + "px";
 
-      if (
-        gokuRect.right > pipeTopRect.left &&
-        gokuRect.left < pipeTopRect.right
-      ) {
+        // Collision detection
+        let pipeTopRect = pipe.top.getBoundingClientRect();
+        let pipeBottomRect = pipe.bottom.getBoundingClientRect();
+
+        // More accurate collision detection with a small buffer (5px) for better gameplay
         if (
-          gokuRect.top < pipeTopRect.bottom ||
-          gokuRect.bottom > pipeBottomRect.top
+          gokuRect.right > pipeTopRect.left + 5 &&
+          gokuRect.left < pipeTopRect.right - 5
         ) {
-          endGame();
+          if (
+            gokuRect.top < pipeTopRect.bottom - 5 ||
+            gokuRect.bottom > pipeBottomRect.top + 5
+          ) {
+            endGame();
+          }
         }
       }
-    }
-  });
+    });
+  }
 
   if (!isGameOver) {
     requestAnimationFrame(gameLoop);
   }
 }
 
-// Start Pipe Generation and Game Loop
 function startGame() {
   setTimeout(() => {
     pipeInterval = setInterval(createPipes, 2000); // New pipe every 2 seconds
@@ -119,7 +137,6 @@ function startGame() {
   requestAnimationFrame(gameLoop);
 }
 
-// End Game
 function endGame() {
   isGameOver = true;
   clearInterval(pipeInterval);
@@ -127,15 +144,5 @@ function endGame() {
   location.reload(); // Reload the game on game over
 }
 
-// Start the game only when the space key is pressed or screen is touched
-function startScreen(e) {
-  if (e.code === "Space" || e.type === "touchstart") {
-    startScreenText.style.display = "none";
-    goku.style.display = "block";
-    document.removeEventListener("keydown", startScreen);
-    document.removeEventListener("touchstart", startScreen); // Remove touch event listener
-    document.addEventListener("keydown", fly); // Add fly event listener
-    document.addEventListener("touchstart", fly); // Add touch event listener for flying
-    startGame(); // Start the game on space key press or screen touch
-  }
-}
+// Start the game loop without starting the game
+requestAnimationFrame(gameLoop);
